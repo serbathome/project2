@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <!-- setting window title, which has chat room name -->
+    <title id="windowtitle">Flack online - {{ room.name }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO"
+        crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy"
+        crossorigin="anonymous"></script>
+    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+    <script>
+        // chat page JavaScript logic
+        var currentroom = '{{room.name}}';
+        var username = '{{username}}';
+
+        // connect to the socket
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        // set handlers for message management
+        // handle getting the list of rooms & setting rooms menu
+        socket.on('list of rooms', data => {
+            document.querySelector('#listofrooms').innerHTML = '';
+            data.rooms.forEach(element => {
+                var link = document.createElement('a');
+                link.href = '#';
+                link.className = 'dropdown-item';
+                link.innerHTML = element;
+                link.onclick = () => { // handle joining new room
+                    if (element === currentroom) { return false; } // change to the same room we are in, do nothing
+                    document.querySelector('#chatarea').innerHTML = ''; // clean chat area
+                    socket.emit('leave', { 'username': username, 'room': currentroom }); // leave the room
+                    currentroom = element; // update current room
+                    socket.emit('getmessages', { 'room': currentroom }); // get message from new room
+                    socket.emit('join', { 'username': username, 'room': currentroom }); // join new room
+                    // update UI
+                    // window title
+                    document.querySelector('#windowtitle').innerHTML = `Flack online - ${currentroom}`;
+                    // navbar - room menu
+                    document.querySelector('#currentroom').innerHTML = currentroom;
+                    return false;
+                }
+                document.querySelector('#listofrooms').append(link);
+            });
+        });
+        // handle getting the list of messages from the server
+        socket.on('messages', data => {
+            data.messages.forEach(element => {
+                var p = document.createElement('p');
+                p.innerHTML = element;
+                document.querySelector('#chatarea').append(p);
+            });
+        });
+        // handle getting a message from the server
+        socket.on('message', data => {
+            var p = document.createElement('p');
+            var id = `x${Date.now()}`;
+            p.innerHTML = data.message;
+            p.id = id;
+            document.querySelector('#chatarea').append(p);
+            // hack - add p element with unique id and scroll it into view
+            document.querySelector(`#${id}`).scrollIntoView(true);
+            return false;
+        });
+        // handle join message from server & print join message
+        socket.on('join', data => {
+            var p = document.createElement('p');
+            p.innerHTML = data.message;
+            document.querySelector('#chatarea').append(p);
+        });
+        // handle leave message from server & print leave message
+        socket.on('leave', data => {
+            var p = document.createElement('p');
+            p.innerHTML = data.message;
+            document.querySelector('#chatarea').append(p);
+        });
+
+        // request initial data
+        // load list of the rooms
+        socket.emit('getrooms', {});
+        // load historical messages from the selected room
+        socket.emit('getmessages', {
+            'room': currentroom
+        });
+        // join current room
+        socket.emit('join', {
+            'username': username,
+            'room': currentroom
+        });
+
+        // add listener for DOMContentLoaded and define UI handlers elements
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // create new channel
+            document.querySelector('#createroom').onclick = () => {
+                var newroom = document.querySelector('#newroom').value;
+                alert(`creating new channel ${newroom}`);
+                document.querySelector('#newroom').value = '';
+                return false;
+            }
+            // log out of the server
+            document.querySelector('#logout').onclick = () => {
+                socket.emit('leave', {
+                    'username': username,
+                    'room': currentroom
+                });
+                window.location.href = 'http://127.0.0.1:5000/';
+                return false;
+            }
+            // submitting a message
+            document.querySelector('#submit').onclick = () => {
+                var message = document.querySelector('#message').value;
+                socket.emit('message', {
+                    'username': username,
+                    'room': currentroom,
+                    'message': message
+                });
+                document.querySelector('#message').value = '';
+                return false;
+            }
+        });
+
+    </script>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <!-- top nav bar for channel management -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+            <div class="navbar-brand">Flack</div>
+            <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarSupportedContent">
+                <ul class="navbar-nav mr-auto">
+                    <li class="nav-item active">
+                        <div class="nav-link">
+                            <!-- setting current room id -->
+                            <span id="currentroom">{{ room.name }}</span>
+                            <span class="sr-only">(current)</span>
+                        </div>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-toggle="dropdown" aria-haspopup="true"
+                            aria-expanded="false">
+                            Chat channels
+                        </a>
+                        <!-- setting chat room names and links -->
+                        <div id="listofrooms" class="dropdown-menu" aria-labelledby="navbarDropdown">
+                            <a class="dropdown-item" href="#">Home</a>
+                            <a class="dropdown-item" href="#">Help</a>
+                            <a class="dropdown-item" href="#">CS50 Web development</a>
+                        </div>
+                    </li>
+                </ul>
+                <form class="form-inline my-2 my-lg-0">
+                    <input class="form-control mr-sm-2" type="search" placeholder="New channel" aria-label="Create" id="newroom">
+                    <button class="btn btn-primary my-2 my-sm-0 mr-2" type="submit" id="createroom">Create</button>
+                    <button class="btn btn-primary my-2 my-sm-0" type="submit" id="logout">Logout</button>
+                </form>
+            </div>
+        </nav>
+        <!-- end of top nav bar for channel management -->
+
+        <!-- main chat area-->
+        <div id="chatarea" style="padding-top: 50px; padding-bottom: 70px;overflow-y: scroll; max-height: 80%">
+        </div>
+        <div id="snapper"></div>
+
+        <!-- bottom nav bar for chat messages -->
+        <nav class="navbar navbar-light bg-light fixed-bottom">
+            <form class="mx-2 my-auto d-inline w-100">
+                <div class="input-group">
+                    <input class="form-control mx-auto" type="text" autofocus placeholder="Your message" id="message">
+                    <span class="input-group-append">
+                        <button class="btn btn-primary ml-2" type="submit" id="submit">Submit</button>
+                    </span>
+                </div>
+            </form>
+        </nav>
+        <!-- end of bottom nav bar for chat messages -->
+    </div>
+</body>
+
+</html>
