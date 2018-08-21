@@ -87,6 +87,10 @@ def on_join(data):
     room = data['room']
     join_room(room)
     m = f"{username} has entered the room"
+    r = getRoomByName(roomname=room)
+    r.PostMessage(user="Masterbot", message=m)
+    timenow = datetime.datetime.now().strftime('%d %b %Y %H:%M')
+    m = f"[{timenow}] Masterbot:> {m}"
     emit('join', {"message": m}, room=room)
 
 
@@ -96,6 +100,10 @@ def on_leave(data):
     room = data['room']
     leave_room(room)
     m = f"{username} has left the room"
+    r = getRoomByName(roomname=room)
+    r.PostMessage(user="Masterbot", message=m)
+    timenow = datetime.datetime.now().strftime('%d %b %Y %H:%M')
+    m = f"[{timenow}] Masterbot:> {m}"
     emit('leave', {"message": m}, room=room)
 
 
@@ -111,6 +119,14 @@ def on_getrooms(data):
 def on_getmessages(data):
     room = getRoomByName(roomname=data['room'])
     messages = []
-    # for message in room.messages:
-    #    messages.append(message)
     emit('messages', {'messages': room.messages}, room=request.sid)
+
+
+@socketio.on('addroom')
+def on_addroom(data):
+    room = Room(name=data['room'])
+    roomslist = []
+    rooms.append(room)
+    for r in rooms:
+        roomslist.append(r.name)
+    emit('list of rooms', {"rooms": roomslist}, broadcast=True)

@@ -20,6 +20,7 @@
         // chat page JavaScript logic
         var currentroom = '{{room.name}}';
         var username = '{{username}}';
+        var rooms = [];
 
         // connect to the socket
         var socket = io.connect('http://' + document.domain + ':' + location.port);
@@ -27,8 +28,10 @@
         // set handlers for message management
         // handle getting the list of rooms & setting rooms menu
         socket.on('list of rooms', data => {
+            rooms = []; // clean old list of rooms and rebuild
             document.querySelector('#listofrooms').innerHTML = '';
             data.rooms.forEach(element => {
+                rooms.push(element); // add room to the global list of rooms
                 var link = document.createElement('a');
                 link.href = '#';
                 link.className = 'dropdown-item';
@@ -100,8 +103,13 @@
 
             // create new channel
             document.querySelector('#createroom').onclick = () => {
-                var newroom = document.querySelector('#newroom').value;
-                alert(`creating new channel ${newroom}`);
+                const newroom = document.querySelector('#newroom').value;
+                if (rooms.includes(newroom)) {
+                    alert(`Room: ${newroom} already exists`);
+                }
+                else {
+                    socket.emit('addroom', { 'room': newroom });
+                }
                 document.querySelector('#newroom').value = '';
                 return false;
             }
@@ -125,6 +133,14 @@
                 document.querySelector('#message').value = '';
                 return false;
             }
+        });
+
+        // leave the room if browser is closed
+        window.addEventListener('beforeunload', () => {
+            socket.emit('leave', {
+                'username': username,
+                'room': currentroom
+            });
         });
 
     </script>
@@ -156,9 +172,9 @@
                         </a>
                         <!-- setting chat room names and links -->
                         <div id="listofrooms" class="dropdown-menu" aria-labelledby="navbarDropdown">
-                            <a class="dropdown-item" href="#">Home</a>
+                            <!--a class="dropdown-item" href="#">Home</a>
                             <a class="dropdown-item" href="#">Help</a>
-                            <a class="dropdown-item" href="#">CS50 Web development</a>
+                            <a class="dropdown-item" href="#">CS50 Web development</a-->
                         </div>
                     </li>
                 </ul>
