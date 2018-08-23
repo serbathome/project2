@@ -49,6 +49,8 @@
                     document.querySelector('#windowtitle').innerHTML = `Flack online - ${currentroom}`;
                     // navbar - room menu
                     document.querySelector('#currentroom').innerHTML = currentroom;
+                    // update localstorage
+                    localStorage.setItem('roomname', currentroom);
                     return false;
                 }
                 document.querySelector('#listofrooms').append(link);
@@ -135,6 +137,7 @@
                     'username': username,
                     'room': currentroom
                 });
+                localStorage.setItem('username', '');
                 window.location.href = 'http://127.0.0.1:5000/';
                 return false;
             }
@@ -161,6 +164,8 @@
                 document.querySelector('#windowtitle').innerHTML = `Flack online - ${currentroom}`;
                 // navbar - room menu
                 document.querySelector('#currentroom').innerHTML = currentroom;
+                // update localstorage
+                localStorage.setItem('roomname', currentroom);
                 return false;
             }
         });

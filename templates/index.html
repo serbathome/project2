@@ -17,24 +17,41 @@
     </title>
     <script>
 
-        // if localstorage has username & roomname, autofill fields and trigger click
+        rooms = [];
 
         var socket = io.connect('http://' + document.domain + ':' + location.port);
 
         socket.on('list of rooms', data => {
+            rooms = [];
             document.querySelector('#rooms').innerHTML = '';
             data.rooms.forEach(element => {
+                rooms.push(element);
                 let room = document.createElement('option');
                 room.innerHTML = element;
                 document.querySelector('#rooms').append(room);
             });
+            // hack - after rooms are loaded, check if we have
+            // username and room name in local storage and that roomname is on the list
+            // if both yes, autologin the user
+            if (localStorage.getItem('username') != '' &&
+                localStorage.getItem('roomname') != '' &&
+                rooms.includes(document.querySelector('#rooms').value)) {
+                document.querySelector('#username').value = localStorage.getItem('username');
+                document.querySelector('#rooms').value = localStorage.getItem('roomname');
+                document.querySelector('#submit').click();
+            }
         });
 
         document.addEventListener('DOMContentLoaded', () => {
+
             document.querySelector('#submit').onclick = () => {
                 if (document.querySelector('#username').value == '') {
                     $('#emptyusername').modal();
                     return false;
+                }
+                else {
+                    localStorage.setItem('username', document.querySelector('#username').value);
+                    localStorage.setItem('roomname', document.querySelector('#rooms').value);
                 }
             }
         });
