@@ -9,11 +9,6 @@ from flask_socketio import SocketIO, emit, send, join_room, leave_room
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 socketio = SocketIO(app)
-# app.config["SESSION_PERMANENT"] = True
-# app.config["SESSION_TYPE"] = "filesystem"
-# Session(app)
-
-# time format datetime.datetime.now().strftime('%d %b %Y %H:%m')
 
 
 class Room:
@@ -22,7 +17,7 @@ class Room:
         self.messages = []
 
     def PostMessage(self, user, message):
-        if len(self.messages) > 10:  # limit amount of message in the room
+        if len(self.messages) > 100:  # limit amount of message in the room
             self.messages.pop(0)
         timenow = datetime.datetime.now().strftime('%d %b %Y %H:%M')
         message = f"[{timenow}] {user}:> {message}"
@@ -39,13 +34,6 @@ CS50WebDev = Room(name="CS50 Web dev")
 rooms.append(Home)
 rooms.append(Help)
 rooms.append(CS50WebDev)
-
-
-def roomExists(roomname):
-    for room in rooms:
-        if room.name == roomname:
-            return True
-    return False
 
 
 def getRoomByName(roomname):

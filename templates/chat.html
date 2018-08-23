@@ -20,6 +20,7 @@
         // chat page JavaScript logic
         var currentroom = '{{room.name}}';
         var username = '{{username}}';
+        var modal_newroom;
         var rooms = [];
 
         // connect to the socket
@@ -60,6 +61,12 @@
                 p.innerHTML = element;
                 document.querySelector('#chatarea').append(p);
             });
+            // hack add span element with unique id and scroll it into view
+            const id = `x${Date.now()}`;
+            const s = document.createElement('span');
+            s.id = id;
+            document.querySelector('#chatarea').append(s);
+            document.querySelector(`#${id}`).scrollIntoView(true);
         });
         // handle getting a message from the server
         socket.on('message', data => {
@@ -70,19 +77,26 @@
             document.querySelector('#chatarea').append(p);
             // hack - add p element with unique id and scroll it into view
             document.querySelector(`#${id}`).scrollIntoView(true);
-            return false;
         });
         // handle join message from server & print join message
         socket.on('join', data => {
             var p = document.createElement('p');
+            var id = `x${Date.now()}`;
             p.innerHTML = data.message;
+            p.id = id;
             document.querySelector('#chatarea').append(p);
+            // hack - add p element with unique id and scroll it into view
+            document.querySelector(`#${id}`).scrollIntoView(true);
         });
         // handle leave message from server & print leave message
         socket.on('leave', data => {
             var p = document.createElement('p');
+            var id = `x${Date.now()}`;
             p.innerHTML = data.message;
+            p.id = id;
             document.querySelector('#chatarea').append(p);
+            // hack - add p element with unique id and scroll it into view
+            document.querySelector(`#${id}`).scrollIntoView(true);
         });
 
         // request initial data
@@ -105,10 +119,12 @@
             document.querySelector('#createroom').onclick = () => {
                 const newroom = document.querySelector('#newroom').value;
                 if (rooms.includes(newroom)) {
-                    alert(`Room: ${newroom} already exists`);
+                    $('#channelexists').modal();
                 }
                 else {
                     socket.emit('addroom', { 'room': newroom });
+                    modal_newroom = newroom; // hack, need to tell modal button name of new room
+                    $('#newchannel').modal();
                 }
                 document.querySelector('#newroom').value = '';
                 return false;
@@ -131,6 +147,20 @@
                     'message': message
                 });
                 document.querySelector('#message').value = '';
+                return false;
+            }
+            // modal join room function handler
+            document.querySelector('#joinnewchannel').onclick = () => {
+                document.querySelector('#chatarea').innerHTML = ''; // clean chat area
+                socket.emit('leave', { 'username': username, 'room': currentroom }); // leave the room
+                currentroom = modal_newroom; // update current room
+                socket.emit('getmessages', { 'room': currentroom }); // get message from new room
+                socket.emit('join', { 'username': username, 'room': currentroom }); // join new room
+                // update UI
+                // window title
+                document.querySelector('#windowtitle').innerHTML = `Flack online - ${currentroom}`;
+                // navbar - room menu
+                document.querySelector('#currentroom').innerHTML = currentroom;
                 return false;
             }
         });
@@ -205,6 +235,47 @@
         </nav>
         <!-- end of bottom nav bar for chat messages -->
     </div>
+    <!-- Modal channel exists -->
+    <div class="modal fade" id="channelexists" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Channel exists</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    Channel with this name already exists. In order to join select the channel from menu.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End of Modal channel exists -->
+    <!-- Modal new channel -->
+    <div class="modal fade" id="newchannel" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="exampleModalLabel">Channel created</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    Channel has been created. Channel is available in the menu. Click join to immediately join new channel.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button id="joinnewchannel" type="button" data-dismiss="modal" class="btn btn-primary">Join</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- End of Modal new channel -->
 </body>
 
 </html>

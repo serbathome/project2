@@ -16,6 +16,9 @@
         Flack online
     </title>
     <script>
+
+        // if localstorage has username & roomname, autofill fields and trigger click
+
         var socket = io.connect('http://' + document.domain + ':' + location.port);
 
         socket.on('list of rooms', data => {
